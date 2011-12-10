@@ -3,34 +3,43 @@ require 'net/http'
 require 'ostruct'
 require_relative 'core-ext/openstruct'
 require_relative 'version'
+require_relative 'exceptions'
 
 module GdsApi::JsonUtils
   USER_AGENT = "GDS Api Client v. #{GdsApi::VERSION}"
+  TIMEOUT_IN_SECONDS = 0.5
 
-  def get_json(url)
+  def do_request(url, &block)
     url = URI.parse(url)
     request = url.path
     request = request + "?" + url.query if url.query
 
     response = Net::HTTP.start(url.host, url.port) do |http|
-      http.get(request, {'Accept' => 'application/json', 'User-Agent' => USER_AGENT})
+      http.read_timeout = TIMEOUT_IN_SECONDS
+      yield http, request
     end
-    if response.code.to_i != 200
-      return nil
+
+    if response.is_a?(Net::HTTPSuccess)
+      JSON.parse(response.body)
     else
-      return JSON.parse(response.body)
+      nil
+    end
+  rescue Errno::ECONNREFUSED
+    raise GdsApi::EndpointNotFound.new("Could not connect to #{url}")
+  rescue Timeout::Error, Errno::ECONNRESET
+    nil
+  end
+
+  def get_json(url)
+    do_request(url) do |http, path|
+      http.get(path, {'Accept' => 'application/json', 'User-Agent' => USER_AGENT})
     end
   end
 
   def post_json(url, params)
-    url = URI.parse(url)
-    Net::HTTP.start(url.host, url.port) do |http|
-      post_response = http.post(url.path, params.to_json, {'Content-Type' => 'application/json', 'User-Agent' => USER_AGENT})
-      if post_response.code == '200'
-        return JSON.parse(post_response.body)
-      end
+    do_request(url) do |http, path|
+      http.post(path, params.to_json, {'Content-Type' => 'application/json', 'User-Agent' => USER_AGENT})
     end
-    return nil
   end
 
   def to_ostruct(object)
