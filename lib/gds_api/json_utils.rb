@@ -6,40 +6,49 @@ require_relative 'version'
 require_relative 'exceptions'
 
 module GdsApi::JsonUtils
-  USER_AGENT = "GDS Api Client v. #{GdsApi::VERSION}"
   TIMEOUT_IN_SECONDS = 0.5
+  STANDARD_HEADERS = {
+    'Accept' => 'application/json', 
+    'Content-Type' => 'application/json', 
+    'User-Agent' => "GDS Api Client v. #{GdsApi::VERSION}"
+  }
 
-  def do_request(url, &block)
-    url = URI.parse(url)
-    request = url.path
-    request = request + "?" + url.query if url.query
-
-    response = Net::HTTP.start(url.host, url.port) do |http|
-      http.read_timeout = TIMEOUT_IN_SECONDS
-      yield http, request
-    end
-
-    if response.is_a?(Net::HTTPSuccess)
+  def process_response(response, url)
+    if response.timed_out?
+      raise GdsApi::TimedOut
+    elsif response.success?
       JSON.parse(response.body)
+    elsif response.code == 404
+      return nil
     else
-      nil
+      raise GdsApi::EndpointNotFound.new("Could not connect to #{url}")
     end
+  end
+
+  def do_request(url, verb, params = {})
+    request = Typhoeus::Request.new(url,
+      :method        => verb,
+      :body          => params.any? ? params.to_json : nil,
+      :headers       => STANDARD_HEADERS,
+      :timeout       => TIMEOUT_IN_SECONDS * 1000, # milliseconds
+      :cache_timeout => 60 # seconds
+    )
+
+    hydra = Typhoeus::Hydra.new
+    hydra.queue(request)
+    hydra.run
+
+    process_response(request.response, url)
   rescue Errno::ECONNREFUSED
     raise GdsApi::EndpointNotFound.new("Could not connect to #{url}")
-  rescue Timeout::Error, Errno::ECONNRESET
-    nil
   end
 
   def get_json(url)
-    do_request(url) do |http, path|
-      http.get(path, {'Accept' => 'application/json', 'User-Agent' => USER_AGENT})
-    end
+    do_request(url, :get)
   end
 
   def post_json(url, params)
-    do_request(url) do |http, path|
-      http.post(path, params.to_json, {'Content-Type' => 'application/json', 'User-Agent' => USER_AGENT})
-    end
+    do_request(url, :post, params)
   end
 
   def to_ostruct(object)

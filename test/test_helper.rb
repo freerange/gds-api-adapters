@@ -1,3 +1,4 @@
+require 'typhoeus'
 require 'minitest/autorun'
 require 'webmock/minitest'
 require 'rack/utils'
