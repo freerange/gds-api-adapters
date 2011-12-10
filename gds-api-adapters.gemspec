@@ -18,6 +18,7 @@ Gem::Specification.new do |s|
   s.test_files   = Dir['test/**/*']
   s.require_path = 'lib'
   s.add_dependency 'plek'
+  s.add_dependency 'typhoeus'
   
   s.add_development_dependency 'rake', '~> 0.9.2.2'
   s.add_development_dependency 'webmock', '~> 1.7'
