@@ -11,22 +11,13 @@ end
 class JsonUtilsTest < MiniTest::Unit::TestCase
   include GdsApi::JsonUtils
 
-  # def test_long_requests_timeout
-  #   stub_request(:get, "www.example.com/timeout.json").to_rack(StubRackApp)
-  #   assert_nil get_json("http://www.example.com/timeout.json")
-  # end
-  #
-  # def test_get_raises_exception_on_timeout
-  #   url = "http://some.endpoint/some.json"
-  #   stub_request(:get, url).to_raise(Timeout::Error)
-  #   assert_nil get_json(url)
-  # end
-  #
-  # def test_post_returns_nil_on_timeout
-  #   url = "http://some.endpoint/some.json"
-  #   stub_request(:post, url).to_raise(Timeout::Error)
-  #   assert_nil post_json(url, {})
-  # end
+  def test_long_requests_timeout
+    url = "http://www.example.com/timeout.json"
+    stub_request(:get, url).to_rack(StubRackApp)
+    assert_raises GdsApi::TimedOut do
+      get_json(url)
+    end
+  end
 
   def test_get_should_raise_endpoint_not_found_if_connection_refused
     url = "http://some.endpoint/some.json"
