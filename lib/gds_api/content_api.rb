@@ -12,6 +12,10 @@ class GdsApi::ContentApi < GdsApi::Base
     get_json!("#{base_url}/with_tag.json?tag=#{tag}")
   end
 
+  def artefact(slug)
+    get_json!("#{base_url}/#{slug}.json")
+  end
+
   private
     def base_url
       endpoint
