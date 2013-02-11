@@ -57,7 +57,17 @@ module GdsApi
     end
 
     def get_json!(url, &create_response)
-      @cache[url] ||= do_json_request(:get, url, nil, &create_response)
+      # If we're doing something bespoke with the response, we don't want to
+      # cache the result, since the cache is shared across all JsonClient
+      # instances. This is, unfortunately, going to break caching for most of
+      # the content API.
+      #
+      # TODO: make this not break caching for the content API
+      if create_response
+        do_json_request(:get, url, nil, &create_response)
+      else
+        @cache[url] ||= do_json_request(:get, url, nil, &create_response)
+      end
     end
 
     def post_json!(url, params)
