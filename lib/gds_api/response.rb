@@ -48,8 +48,8 @@ module GdsApi
       @ostruct ||= self.class.build_ostruct_recursively(to_hash)
     end
 
-    def method_missing(method)
-      to_ostruct.send(method)
+    def method_missing(method, *args, &block)
+      to_ostruct.send(method, *args, &block)
     end
 
     def respond_to_missing?(method, include_private)
