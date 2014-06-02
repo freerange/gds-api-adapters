@@ -24,7 +24,7 @@ module GdsApi
     extend Forwardable
     include Enumerable
 
-    def_delegators :to_hash, :[], :"<=>", :each
+    def_delegators :to_hash, :[], :fetch, :"<=>", :each
 
     def initialize(http_response, options = {})
       @http_response = http_response
