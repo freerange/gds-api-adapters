@@ -2,6 +2,7 @@ require_relative 'json_client'
 require 'cgi'
 require 'null_logger'
 require 'plek'
+require 'addressable/template'
 require_relative 'list_response'
 
 class GdsApi::Base
@@ -57,6 +58,17 @@ class GdsApi::Base
 
 private
   attr_accessor :endpoint
+
+  def build_uri(path, options = {})
+    template = Addressable::Template.new("#{endpoint}{/segments*}/{path}{?query*}")
+    uri = template.expand(
+      path: path,
+      segments: options[:segments],
+      query: options[:params]
+    )
+
+    uri.to_s
+  end
 
   def query_string(params)
     return "" if params.empty?

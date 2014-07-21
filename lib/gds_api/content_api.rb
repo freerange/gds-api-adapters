@@ -27,61 +27,61 @@ class GdsApi::ContentApi < GdsApi::Base
   end
 
   def tags(tag_type, options={})
-    params = [
-      "type=#{CGI.escape(tag_type)}"
-    ]
-    params << "sort=#{options[:sort]}" if options.has_key?(:sort)
+    params = {type: tag_type}
+    params.merge!(sort: options[:sort]) if options[:sort]
 
-    get_list!("#{base_url}/tags.json?#{params.join('&')}")
+    get_list!(build_uri('tags.json', params: params))
   end
 
   def root_tags(tag_type)
-    get_list!("#{base_url}/tags.json?type=#{CGI.escape(tag_type)}&root_sections=true")
+    uri = build_uri('tags.json', params: {
+      type: tag_type,
+      root_sections: true
+    })
+
+    get_list!(uri)
   end
 
   def child_tags(tag_type, parent_tag, options={})
-    params = [
-      "type=#{CGI.escape(tag_type)}",
-      "parent_id=#{CGI.escape(parent_tag)}",
-    ]
-    params << "sort=#{options[:sort]}" if options.has_key?(:sort)
+    params = {
+      type: tag_type,
+      parent_id: parent_tag
+    }
+    params.merge!(sort: options[:sort]) if options[:sort]
 
-    get_list!("#{base_url}/tags.json?#{params.join('&')}")
+    get_list!(build_uri('tags.json', params: params))
   end
 
   def tag(tag, tag_type=nil)
-    url = "#{base_url}/tags"
+    segments = ['tags']
+    segments << tag_type if tag_type
 
-    if tag_type
-      url << "/#{CGI.escape(tag_type)}"
-    end
-
-    get_json("#{url}/#{CGI.escape(tag)}.json")
+    get_json(build_uri("#{tag}.json", segments: segments))
   end
 
   def with_tag(tag, tag_type=nil, options={})
     tag_key = key_for_tag_type(tag_type)
 
-    url = "#{base_url}/with_tag.json?#{tag_key}=#{CGI.escape(tag)}"
-    url << "&group_by=#{CGI.escape(options[:group_by])}" if options.has_key?(:group_by)
+    params = {tag_key => tag}
+    params.merge!(group_by: options[:group_by]) if options[:group_by]
 
-    get_list!(url)
+    get_list!(build_uri('with_tag.json', params: params))
   end
 
   def curated_list(tag, tag_type=nil)
     tag_key = key_for_tag_type(tag_type)
 
-    get_list("#{base_url}/with_tag.json?#{tag_key}=#{CGI.escape(tag)}&sort=curated")
+    get_list(build_uri('with_tag.json', params: {tag_key => tag, sort: 'curated'}))
   end
 
   def sorted_by(tag, sort_by, tag_type=nil)
     tag_key = key_for_tag_type(tag_type)
 
-    get_list!("#{base_url}/with_tag.json?#{tag_key}=#{CGI.escape(tag)}&sort=#{sort_by}")
+    get_list(build_uri('with_tag.json', params: {tag_key => tag, sort: sort_by}))
   end
 
   def for_need(need_id)
-    get_list("#{base_url}/for_need/#{CGI.escape(need_id.to_s)}.json")
+    get_list(build_uri("#{need_id}.json", segments: ['for_need']))
   end
 
   def artefact(slug, params={})
@@ -93,19 +93,19 @@ class GdsApi::ContentApi < GdsApi::Base
   end
 
   def artefacts
-    get_list!("#{base_url}/artefacts.json")
+    get_list!(build_uri("artefacts.json"))
   end
 
   def local_authority(snac_code)
-    get_json("#{base_url}/local_authorities/#{CGI.escape(snac_code)}.json")
+    get_json(build_uri("#{snac_code}.json", segments: ['local_authorities']))
   end
 
   def local_authorities_by_name(name)
-    get_json!("#{base_url}/local_authorities.json?name=#{CGI.escape(name)}")
+    get_json!(build_uri("local_authorities.json", params: {name: name}))
   end
 
   def local_authorities_by_snac_code(snac_code)
-    get_json!("#{base_url}/local_authorities.json?snac_code=#{CGI.escape(snac_code)}")
+    get_json!(build_uri("local_authorities.json", params: {snac_code: snac_code}))
   end
 
   def licences_for_ids(ids)
@@ -114,13 +114,7 @@ class GdsApi::ContentApi < GdsApi::Base
   end
 
   def business_support_schemes(facets)
-    url = "#{base_url}/business_support_schemes.json"
-    query = facets.map { |k,v| "#{k}=#{v}" }
-    if query.any?
-      url += "?#{query.join("&")}"
-    end
-
-    get_json!(url)
+    get_json!(build_uri("business_support_schemes.json", params: facets))
   end
 
   def get_list!(url)
@@ -150,24 +144,15 @@ class GdsApi::ContentApi < GdsApi::Base
   end
 
   private
-    def base_url
-      endpoint
-    end
-
     def key_for_tag_type(tag_type)
-      tag_type.nil? ? "tag" : CGI.escape(tag_type)
+      tag_type || 'tag'
     end
 
     def artefact_url(slug, params)
-      url = "#{base_url}/#{CGI.escape(slug)}.json"
-      query = params.map { |k,v| "#{k}=#{v}" }
-      if query.any?
-        url += "?#{query.join("&")}"
-      end
-
-      if params[:edition] && ! options.include?(:bearer_token)
+      if params[:edition] && !options.include?(:bearer_token)
         raise GdsApi::NoBearerToken
       end
-      url
+
+      build_uri("#{slug}.json", params: params)
     end
 end
