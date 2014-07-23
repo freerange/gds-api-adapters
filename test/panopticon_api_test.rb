@@ -54,7 +54,7 @@ class PanopticonApiTest < MiniTest::Unit::TestCase
   def should_fetch_and_parse_JSON_into_hash
     url = "#{PANOPTICON_ENDPOINT}/some.json"
     stub_request(:get, url).to_return(body: {a:1}.to_json)
-  
+
     assert_equal 1, api.get_json(url)['a']
   end
 
@@ -66,7 +66,7 @@ class PanopticonApiTest < MiniTest::Unit::TestCase
   end
 
   def test_should_construct_correct_url_for_a_slug
-    assert_equal "#{PANOPTICON_ENDPOINT}/artefacts/slug.json", api.url_for_slug('slug')
+    assert_equal "#{PANOPTICON_ENDPOINT}/artefacts/slug.json", api.url_for_slug('slug', segments: ['artefacts'])
   end
 
   def test_contacts_should_be_deserialised_into_whole_objects

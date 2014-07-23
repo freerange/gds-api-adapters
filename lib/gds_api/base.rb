@@ -47,7 +47,9 @@ class GdsApi::Base
   end
 
   def url_for_slug(slug, options={})
-    "#{base_url}/#{slug}.json#{query_string(options)}"
+    segments = options.delete(:segments)
+    build_uri("#{slug}.json", params: options, segments: segments)
+    # "#{base_url}/#{query_string(options)}"
   end
 
   def get_list!(url)
