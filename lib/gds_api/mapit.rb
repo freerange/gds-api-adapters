@@ -11,6 +11,19 @@ class GdsApi::Mapit < GdsApi::Base
     raise e unless e.code == 400
   end
 
+  def location_for_partial_postcode(outcode)
+    partial = get_json("#{base_url}/postcode/partial/#{CGI.escape outcode}.json")
+    point = get_json("#{base_url}/point/27700/#{partial.easting},#{partial.northing}.json")
+
+    response = partial.to_h
+    response['areas'] = point.to_h
+
+    return Location.new(response) unless response.nil?
+  rescue GdsApi::HTTPErrorResponse => e
+    # allow 400 errors, as they can be invalid postcodes people have entered
+    raise e unless e.code == 400
+  end
+
   def areas_for_type(type)
     get_json("#{base_url}/areas/#{type}.json")
   end
